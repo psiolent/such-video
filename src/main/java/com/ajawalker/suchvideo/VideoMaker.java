@@ -12,7 +12,6 @@ import java.util.concurrent.TimeUnit;
  */
 public class VideoMaker {
 	private final IMediaWriter writer;
-	private final IRational frameRate;
 	private final long nanosPerFrame;
 
 	private int numFrames = 0;
@@ -26,10 +25,9 @@ public class VideoMaker {
 	 * @param fps        the video's frames per second
 	 */
 	public VideoMaker(String outputFile, int width, int height, int fps) {
-		frameRate = IRational.make(fps, 1);
 		nanosPerFrame = 1000000000 / fps;
 		writer = ToolFactory.makeWriter(outputFile);
-		writer.addVideoStream(0, 0, frameRate, width, height);
+		writer.addVideoStream(0, 0, IRational.make(fps, 1), width, height);
 	}
 
 	/**
@@ -67,7 +65,7 @@ public class VideoMaker {
 					frame.getWidth(),
 					frame.getHeight(),
 					BufferedImage.TYPE_3BYTE_BGR);
-			frame.getGraphics().drawImage(preppedFrame, 0, 0, null);
+			preppedFrame.getGraphics().drawImage(frame, 0, 0, null);
 			return preppedFrame;
 		}
 	}

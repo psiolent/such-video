@@ -8,10 +8,11 @@ import java.awt.image.BufferedImage;
 import java.util.concurrent.TimeUnit;
 
 /**
- * An easy-to-use class for creating MP4 videos frame-by-frame.
+ * An easy-to-use class for creating videos frame-by-frame.
  */
 public class VideoMaker {
 	private final IMediaWriter writer;
+	private final FrameViewer viewer;
 	private final long nanosPerFrame;
 
 	private int numFrames = 0;
@@ -28,6 +29,7 @@ public class VideoMaker {
 		nanosPerFrame = 1000000000 / fps;
 		writer = ToolFactory.makeWriter(outputFile);
 		writer.addVideoStream(0, 0, IRational.make(fps, 1), width, height);
+		viewer = new FrameViewer("Such Video", width, height);
 	}
 
 	/**
@@ -42,6 +44,7 @@ public class VideoMaker {
 				prepFrame(frame),
 				numFrames * nanosPerFrame,
 				TimeUnit.NANOSECONDS);
+		viewer.showFrame(frame);
 		return ++numFrames;
 	}
 

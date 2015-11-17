@@ -1,4 +1,6 @@
-package com.ajawalker.suchvideo;
+package com.ajawalker.suchvideo.bifurcation;
+
+import com.ajawalker.suchvideo.VideoMaker;
 
 import java.awt.image.BufferedImage;
 
@@ -10,7 +12,7 @@ import java.awt.image.BufferedImage;
  */
 public class Bifurcation {
 	// the extents of the field we will visualize; interesting stuff happens
-	// from -0.5 to 1.5 on the y-axis and  -2 to 4 on the x-axis
+	// from -0.5 to 1.5 on the y-axis and -2.0 to 4.0 on the x-axis
 	private static final double MIN_X = 2.8;
 	private static final double MAX_X = 4.0;
 	private static final double MIN_Y = 0.0;

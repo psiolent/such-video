@@ -1,11 +1,11 @@
-package com.ajawalker.suchvideo.chemistry;
+package com.ajawalker.suchvideo.fountain;
 
-public class Magnetism implements Force {
+public class Repulsion implements Force {
 	private final Body other;
 	private final double distance;
 	private final double strength;
 
-	public Magnetism(Body other, double distance, double strength) {
+	public Repulsion(Body other, double distance, double strength) {
 		this.other = other;
 		this.distance = distance;
 		this.strength = strength;
@@ -14,7 +14,7 @@ public class Magnetism implements Force {
 	@Override
 	public Vector calc(Body body) {
 		Vector to = body.pos().to(other.pos());
-		double scale = -strength * body.charge() * other.charge() / Math.pow(to.length() / distance, 3.0);
+		double scale = -strength / Math.pow(to.length() / distance, 4.0);
 		return to.normalize().scale(scale);
 	}
 }

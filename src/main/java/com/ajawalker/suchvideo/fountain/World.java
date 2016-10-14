@@ -4,6 +4,7 @@ import com.ajawalker.suchvideo.VideoMaker;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Random;
@@ -41,7 +42,7 @@ public class World {
 	// a mutex for synchronizing access to shared state
 	public static final Object MUTEX = new Object();
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException, InterruptedException {
 		VideoMaker video = new VideoMaker("target/world4.mp4", WIDTH, HEIGHT, 24);
 
 		// create a perimeter of "anchor" bodies that will keep everything

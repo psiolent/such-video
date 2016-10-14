@@ -1,19 +1,23 @@
 package com.ajawalker.suchvideo;
 
-import com.xuggle.mediatool.IMediaWriter;
-import com.xuggle.mediatool.ToolFactory;
-import com.xuggle.xuggler.IRational;
+import io.humble.video.*;
+import io.humble.video.awt.MediaPictureConverter;
+import io.humble.video.awt.MediaPictureConverterFactory;
 
 import java.awt.image.BufferedImage;
-import java.util.concurrent.TimeUnit;
+import java.io.IOException;
 
 /**
  * An easy-to-use class for creating videos frame-by-frame.
  */
 public class VideoMaker {
-	private final IMediaWriter writer;
+	private final Muxer muxer;
+	private final Encoder encoder;
 	private final FrameViewer viewer;
-	private final long nanosPerFrame;
+	private final MediaPicture picture;
+	private final MediaPacket packet;
+
+	private MediaPictureConverter converter = null;
 
 	private int numFrames = 0;
 
@@ -25,10 +29,25 @@ public class VideoMaker {
 	 * @param height     the height of the video
 	 * @param fps        the video's frames per second
 	 */
-	public VideoMaker(String outputFile, int width, int height, int fps) {
-		nanosPerFrame = 1000000000 / fps;
-		writer = ToolFactory.makeWriter(outputFile);
-		writer.addVideoStream(0, 0, IRational.make(fps, 1), width, height);
+	public VideoMaker(String outputFile, int width, int height, int fps) throws IOException, InterruptedException {
+		Rational framerate = Rational.make(1, fps);
+		muxer = Muxer.make(outputFile, null, null);
+		MuxerFormat format = muxer.getFormat();
+		Codec codec = Codec.findEncodingCodec(format.getDefaultVideoCodecId());
+		encoder = Encoder.make(codec);
+		encoder.setWidth(width);
+		encoder.setHeight(height);
+		encoder.setPixelFormat(PixelFormat.Type.PIX_FMT_YUV420P);
+		encoder.setTimeBase(framerate);
+		if (format.getFlag(MuxerFormat.Flag.GLOBAL_HEADER)) {
+			encoder.setFlag(Encoder.Flag.FLAG_GLOBAL_HEADER, true);
+		}
+		encoder.open(null, null);
+		muxer.addNewStream(encoder);
+		muxer.open(null, null);
+		picture = MediaPicture.make(encoder.getWidth(), encoder.getHeight(), PixelFormat.Type.PIX_FMT_YUV420P);
+		picture.setTimeBase(framerate);
+		packet = MediaPacket.make();
 		viewer = new FrameViewer("Such Video", width, height);
 	}
 
@@ -39,17 +58,30 @@ public class VideoMaker {
 	 * @return the number of frames so far
 	 */
 	public int addFrame(BufferedImage frame) {
-		writer.encodeVideo(
-				0,
-				prepFrame(frame),
-				numFrames * nanosPerFrame,
-				TimeUnit.NANOSECONDS);
+		frame = prepFrame(frame);
+		if (converter == null) {
+			converter = MediaPictureConverterFactory.createConverter(frame, picture);
+		}
+		converter.toPicture(picture, frame, numFrames);
+		do {
+			encoder.encode(packet, picture);
+			if (packet.isComplete()) {
+				muxer.write(packet, false);
+			}
+		} while (packet.isComplete());
+
 		viewer.showFrame(frame);
 		return ++numFrames;
 	}
 
 	public void finish() {
-		writer.close();
+		do {
+			encoder.encode(packet, null);
+			if (packet.isComplete()) {
+				muxer.write(packet, false);
+			}
+		} while (packet.isComplete());
+		muxer.close();
 	}
 
 	/**

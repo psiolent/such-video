@@ -3,6 +3,7 @@ package com.ajawalker.suchvideo.bifurcation;
 import com.ajawalker.suchvideo.VideoMaker;
 
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 
 /**
  * Creates a video illustrating the progression of a logistic map bifurcation
@@ -42,7 +43,7 @@ public class Bifurcation {
 
 	private static final String OUTPUT_FILE = "target/bifurcation.mp4";
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException, InterruptedException {
 		// init video maker and the image we will draw frames on
 		VideoMaker video = new VideoMaker(OUTPUT_FILE, WIDTH, HEIGHT, FPS);
 		BufferedImage bi = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);

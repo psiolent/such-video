@@ -18,7 +18,7 @@ public class World {
 	public static final int HEIGHT = 720;
 	public static final int NUM_FRAMES = 24 * 120;
 
-	public static final int NUM_BODIES = WIDTH * HEIGHT / 1000;
+	public static final int NUM_BODIES = WIDTH * HEIGHT / 100;
 
 	public static final int ANCHOR_RADIUS = 2;
 	public static final int ANCHOR_MASS = ANCHOR_RADIUS * ANCHOR_RADIUS;
@@ -30,11 +30,11 @@ public class World {
 	public static final double MAGNETISM_STRENGTH = 1.0;
 
 	public static final double ACCELERATOR_RADIUS = (int) (Math.sqrt(WIDTH * HEIGHT) / 8);
-	public static final double ACCELERATOR_FACTOR = 1.0;
+	public static final double ACCELERATOR_FACTOR = 8.0;
 
-	public static final double GRAVITY_FACTOR = 0.005;
+	public static final double GRAVITY_FACTOR = 0.05;
 
-	public static final double BODY_DRAG_FACTOR = 0.05;
+	public static final double BODY_DRAG_FACTOR = 0.1;
 
 	public static final double TIME_STEP = 5.0;
 	public static final double MAX_MOVE = 0.1;

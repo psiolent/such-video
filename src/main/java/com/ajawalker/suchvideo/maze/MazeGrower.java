@@ -14,7 +14,7 @@ public class MazeGrower {
 
 	private static final int WIDTH = 400;
 	private static final int HEIGHT = 300;
-	private static final int DENSITY = 1;
+	private static final int DENSITY = 4;
 
 	private static final int FIELD_WIDTH = WIDTH * DENSITY;
 	private static final int FIELD_HEIGHT = HEIGHT * DENSITY;
@@ -27,7 +27,7 @@ public class MazeGrower {
 	private static final double BORDER_RADIUS = 5.0 * DENSITY;
 	private static final double NEIGHBOR_RADIUS = 20.0 * DENSITY;
 	private static final double CONNECTION_RADIUS = 1.0 * DENSITY;
-	private static final double BRANCH_RADIUS = CONNECTION_RADIUS / 10.0;
+	private static final double BRANCH_RADIUS = CONNECTION_RADIUS / 3.0;
 	private static final double BRANCH_LENGTH = 3;
 	private static final double GROW_RADIUS = CONNECTION_RADIUS / 1.5;
 
@@ -37,26 +37,34 @@ public class MazeGrower {
 	private static final double BOUNDARY_COEFF = 100000.0;
 	private static final double NEIGHBOR_COEFF = 50000.0;
 	private static final double CONNECTION_COEFF = 10000.0;
-	private static final double STRAIGHTEN_COEFF = 50000.0;
-	private static final double DRAG_COEFF = 100.0;
+	private static final double STRAIGHTEN_COEFF = 10000.0;
+	private static final double DRAG_COEFF = 40.0;
 
-	private static final double GROW_RATE = 0.02;
-	private static final double BRANCH_RATE = 0.01;
+	private static final double MID_LIMIT = 40000.0;
+	private static final double END_LIMIT = 20000.0;
+	private static final double MID_GROW_RATE = 0.00002;
+	private static final double END_GROW_RATE = 0.01;
+	private static final double MID_BRANCH_RATE = 0.000014;
+	private static final double END_BRANCH_RATE = 0.00007;
+	private static final double RATE_MULTIPLIER = 1.01;
+	private static final double RATE_REDUCER = 10.0;
 
 	private static final double STEP_SIZE = 0.0001;
-	private static final double FRAME_STEPS = 25;
+	private static final double FRAME_STEPS = 50;
 
 	public static void main(String[] args) throws IOException, InterruptedException {
 		new MazeGrower().go();
 	}
 
 	private void go() throws IOException, InterruptedException {
-		VideoMaker video = new VideoMaker("target/maze-lines.mp4", WIDTH, HEIGHT, 24);
+		VideoMaker video = new VideoMaker("target/maze-lines-small5.mp4", WIDTH, HEIGHT, 24);
+		//FrameViewer viewer = new FrameViewer("maze", WIDTH, HEIGHT);
 		Field field = new Field();
 		BufferedImage buffer = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
 
+		long lastFrameNanos = System.nanoTime();
 		int lastGrowth = 0;
-		while (lastGrowth < 2000) {
+		while (lastGrowth < 8000) {
 			for (int i = 0; i < FRAME_STEPS; i++) {
 				if (field.advance(STEP_SIZE)) {
 					lastGrowth = 0;
@@ -65,7 +73,10 @@ public class MazeGrower {
 				}
 			}
 			field.draw(buffer, true, false);
-			video.addFrame(buffer);
+			int numFrames = video.addFrame(buffer);
+			//viewer.showFrame(buffer);
+			System.out.format("%f\t%f\t%d%n", (System.nanoTime() - lastFrameNanos) / 1000000000.0, numFrames / 24.0, lastGrowth);
+			lastFrameNanos = System.nanoTime();
 		}
 		video.finish();
 		System.exit(0);
@@ -75,8 +86,10 @@ public class MazeGrower {
 		private final Grid<Node> grid = new Grid<>(MIN_X, MAX_X, MIN_Y, MAX_Y, WIDTH, HEIGHT);
 		private final List<Node> nodes = new ArrayList<>();
 
+		private double rateFactor = 1.0;
+
 		private Field() {
-			Node node = new Node(new Vector((MAX_X - MIN_X) / 2.0, (MAX_Y - MIN_Y) / 2.0), 1.0);
+			Node node = new Node(new Vector((MAX_X - MIN_X) / 2.0, (MAX_Y - MIN_Y) / 2.0));
 			grid.put(node);
 			nodes.add(node);
 		}
@@ -92,40 +105,60 @@ public class MazeGrower {
 			}
 			List<Node> newNodes = new LinkedList<>();
 			for (Node node : nodes) {
-				if (node.pressure() <= 3e4 * NEIGHBOR_COEFF || (node.connections().size() < 2 && node.pressure() < 4e4 * NEIGHBOR_COEFF)) {
-					if (RND.nextDouble() < BRANCH_RATE || nodes.size() < 2) {
-						grew = true;
-						int branchCount = (RND.nextDouble() < 0.1) ? 2 : 1;
-						for (int i = 0; i < branchCount; i++) {
-							double angle = RND.nextDouble() * 2.0 * Math.PI;
-							Node rootNode = node;
-							for (int j = 0; j < BRANCH_LENGTH; j++) {
-								Node branchNode = new Node(rootNode.pos().add(Vector.radial(angle, BRANCH_RADIUS)), 1.0);
-								rootNode.connect(branchNode);
-								branchNode.connect(rootNode);
-								newNodes.add(branchNode);
-								rootNode = branchNode;
-							}
-						}
+				List<Double> branches = new LinkedList<>();
+				double growRate = 0.0;
+				if (nodes.size() < 2) {
+					branches.add(RND.nextDouble() * 2.0 * Math.PI);
+				} else if (node.connections().size() < 2) {
+					if (node.pressure() < END_LIMIT * NEIGHBOR_COEFF && RND.nextDouble() < END_BRANCH_RATE * rateFactor) {
+						branches.add(node.pressureAngle() + RND.nextGaussian() * 0.1 * Math.PI);
+						branches.add(node.pressureAngle() + RND.nextGaussian() * 0.1 * Math.PI);
+					} else if (!grew && node.pressure() < END_LIMIT * NEIGHBOR_COEFF) {
+						growRate = END_GROW_RATE * rateFactor;
 					}
-					for (Node connection : new LinkedList<>(node.connections())) {
-						if (RND.nextDouble() < GROW_RATE * node.youth() * connection.youth() && node.pos.distanceTo(connection.pos) >= GROW_RADIUS) {
-							grew = true;
-							Node growNode = new Node(node.pos().add(node.pos().to(connection.pos()).scale(0.5)), node.youth() * connection.youth());
-							node.disconnect(connection);
-							node.connect(growNode);
-							growNode.connect(node);
-							connection.disconnect(node);
-							connection.connect(growNode);
-							growNode.connect(connection);
-							newNodes.add(growNode);
-						}
+				} else {
+					if (node.pressure() < MID_LIMIT * NEIGHBOR_COEFF && RND.nextDouble() < MID_BRANCH_RATE * rateFactor) {
+						branches.add(node.pressureAngle() + RND.nextGaussian() * 0.1 * Math.PI);
+					} else if (!grew && node.pressure() < MID_LIMIT * NEIGHBOR_COEFF) {
+						growRate = MID_GROW_RATE * rateFactor;
+					}
+				}
+				for (double branchAngle : branches) {
+					grew = true;
+					Node rootNode = node;
+					for (int j = 0; j < BRANCH_LENGTH; j++) {
+						Node branchNode = new Node(rootNode.pos().add(Vector.radial(branchAngle, BRANCH_RADIUS)));
+						rootNode.connect(branchNode);
+						branchNode.connect(rootNode);
+						newNodes.add(branchNode);
+						rootNode = branchNode;
+					}
+				}
+				for (Node connection : new LinkedList<>(node.connections())) {
+					if (RND.nextDouble() < growRate && node.pos.distanceTo(connection.pos) >= GROW_RADIUS) {
+						grew = true;
+						Node growNode = new Node(node.pos().add(node.pos().to(connection.pos()).scale(0.5)));
+						node.disconnect(connection);
+						node.connect(growNode);
+						growNode.connect(node);
+						connection.disconnect(node);
+						connection.connect(growNode);
+						growNode.connect(connection);
+						newNodes.add(growNode);
 					}
 				}
 			}
 			for (Node newNode : newNodes) {
 				grid.put(newNode);
 				nodes.add(newNode);
+			}
+			if (grew) {
+				rateFactor -= RATE_REDUCER;
+				if (rateFactor < 1.0) {
+					rateFactor = 1.0;
+				}
+			} else {
+				rateFactor *= RATE_MULTIPLIER;
 			}
 			return grew;
 		}
@@ -189,16 +222,14 @@ public class MazeGrower {
 		private Vector vel = Vector.ZERO;
 		private Vector pos;
 		private double pressure = 0.0;
+		private Vector pressureVector = Vector.ZERO;
 
-		private double youth;
-
-		private Node(Vector pos, double youth) {
-			this(pos, youth, false);
+		private Node(Vector pos) {
+			this(pos, false);
 		}
 
-		private Node(Vector pos, double youth, boolean fixed) {
+		private Node(Vector pos, boolean fixed) {
 			this.pos = pos;
-			this.youth = youth;
 			this.fixed = fixed;
 		}
 
@@ -232,18 +263,17 @@ public class MazeGrower {
 					}
 				}
 			}
+			pressureVector = acc;
 			Vector avgPos = Vector.ZERO;
 			for (Node connection : connections) {
 				double dist = pos.distanceTo(connection.pos);
 				double factor = -CONNECTION_COEFF * (1.0 - dist / CONNECTION_RADIUS);
 				acc = acc.add(pos.to(connection.pos).normalize().scale(factor));
-				pressure += Math.abs(factor);
 				avgPos = avgPos.add(connection.pos);
 			}
 			if (connections.size() >= 2) {
 				avgPos = avgPos.scale(1.0 / connections.size());
 				acc = acc.add(pos.to(avgPos).scale(STRAIGHTEN_COEFF));
-				pressure += pos.distanceTo(avgPos) * STRAIGHTEN_COEFF;
 			}
 		}
 
@@ -254,11 +284,14 @@ public class MazeGrower {
 		}
 
 		private void draw(Graphics g) {
-			float c = (float) (pressure / (6e4 * NEIGHBOR_COEFF));
-			if (c > 1.0f) {
-				c = 1.0f;
+			float c1 = 1.0f;
+			if (pressure < END_LIMIT * NEIGHBOR_COEFF) {
+				c1 = 0.0f;
+			} else if (pressure < MID_LIMIT * NEIGHBOR_COEFF) {
+				c1 = 0.5f;
 			}
-			g.setColor(new Color(c, c, 1.0f));
+			c1 = 1.0f;
+			g.setColor(new Color(c1, c1, 1.0f));
 			for (Node connection : connections) {
 				g.drawLine((int) (pos.x / DENSITY), (int) (pos.y / DENSITY), (int) (connection.pos.x / DENSITY), (int) (connection.pos.y / DENSITY));
 			}
@@ -276,12 +309,12 @@ public class MazeGrower {
 			connections.remove(connection);
 		}
 
-		private double youth() {
-			return youth;
-		}
-
 		private double pressure() {
 			return pressure;
+		}
+
+		private double pressureAngle() {
+			return pressureVector.angleOf();
 		}
 
 		@Override
@@ -539,8 +572,19 @@ public class MazeGrower {
 			return Math.sqrt(xd * xd + yd * yd);
 		}
 
+		private double angleOf() {
+			double t = Math.atan2(y, x);
+			if (t < 0.0) {
+				t += 2.0 * Math.PI;
+			}
+			return t;
+		}
+
 		private Vector normalize() {
 			double length = this.length();
+			if (length == 0.0) {
+				return Vector.UNIT_X;
+			}
 			return new Vector(x / length, y / length);
 		}
 

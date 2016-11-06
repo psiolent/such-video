@@ -2,6 +2,11 @@ package com.ajawalker.suchvideo.maze;
 
 import java.util.*;
 
+/**
+ * A 2-dimensional index of positioned things. The index is implemented by naively separating space
+ * into equal sized cells and putting things in the cell corresponding to their position.
+ * @param <T> the type of thing which will be indexed in this grid
+ */
 public class Grid<T extends Positioned> {
 	private final ArrayList<Set<T>> grid;
 	private final Map<T, Set<T>> index;
@@ -14,6 +19,16 @@ public class Grid<T extends Positioned> {
 	private final double sizex;
 	private final double sizey;
 
+	/**
+	 * Constructs a grid using the provided extents. Any indexed items outside the extents will be placed
+	 * in the same cell, thus lookups of those items will not be optimized.
+	 * @param minx minimum expected x coordinate of grid space
+	 * @param maxx maximum expected x coordinate of grid space
+	 * @param miny minimum expected y coordinate of grid space
+	 * @param maxy maximum expected y coordinate of grid space
+	 * @param resx how many cells to separate x-axis into; more cells require more memory but lookups are faster
+	 * @param resy how many cells to separate y-axis into; more cells require more memory but lookups are faster
+	 */
 	public Grid(double minx, double maxx, double miny, double maxy, int resx, int resy) {
 		this.minx = minx;
 		this.maxx = maxx;
@@ -30,6 +45,11 @@ public class Grid<T extends Positioned> {
 		}
 	}
 
+	/**
+	 * Puts the item into the grid.
+	 * @param item the item to put into the grid
+	 * @return true if the item was not already in the grid, false if it was
+	 */
 	public boolean put(T item) {
 		boolean contained = remove(item);
 		Set<T> cell = grid.get(ndx(ndxx(item.pos().x()), ndxy(item.pos().y())));
@@ -38,6 +58,11 @@ public class Grid<T extends Positioned> {
 		return !contained;
 	}
 
+	/**
+	 * Removes the item from the grid.
+	 * @param item the item to remove from the grid
+	 * @return true if the item was in the grid, false if it was not
+	 */
 	public boolean remove(T item) {
 		Set<T> cell = index.get(item);
 		if (cell == null) {
@@ -49,6 +74,12 @@ public class Grid<T extends Positioned> {
 		}
 	}
 
+	/**
+	 * Returns all neighbors which are within the specified radius of the provided item.
+	 * @param item the item whose neighbors to find
+	 * @param radius the radius within which to find neighbors
+	 * @return a collection of neighbors within the specified radius
+	 */
 	public Collection<T> neighbors(T item, double radius) {
 		double x = item.pos().x();
 		double y = item.pos().y();
@@ -70,6 +101,11 @@ public class Grid<T extends Positioned> {
 		return Collections.unmodifiableList(neighbors);
 	}
 
+	/**
+	 * Calculates the index x coordinate from the provided space x coordinate.
+	 * @param x the space x coordinate
+	 * @return the corresponding index x coordinate
+	 */
 	private int ndxx(double x) {
 		if (x < minx) {
 			return 0;
@@ -80,6 +116,11 @@ public class Grid<T extends Positioned> {
 		return (int) ((x - minx) / sizex) + 1;
 	}
 
+	/**
+	 * Calculates the index y coordinate from the provided space y coordinate.
+	 * @param y the space y coordinate
+	 * @return the corresponding index y coordinate
+	 */
 	private int ndxy(double y) {
 		if (y < miny) {
 			return 0;
@@ -90,6 +131,12 @@ public class Grid<T extends Positioned> {
 		return (int) ((y - miny) / sizey) + 1;
 	}
 
+	/**
+	 * Calculates the index absolute coordinate from the provided index x and y coordinates
+	 * @param ndxx the index x coordinate
+	 * @param ndxy the index y coordinate
+	 * @return the corresponding index absolute coordinate
+	 */
 	private int ndx(int ndxx, int ndxy) {
 		return ndxx * (resy + 2) + ndxy;
 	}

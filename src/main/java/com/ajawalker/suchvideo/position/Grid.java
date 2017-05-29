@@ -1,4 +1,4 @@
-package com.ajawalker.suchvideo.maze;
+package com.ajawalker.suchvideo.position;
 
 import java.util.*;
 
@@ -93,6 +93,31 @@ public class Grid<T extends Positioned> {
 			for (int ndxy = ndxymin; ndxy <= ndxymax; ndxy++) {
 				for (T neighbor : grid.get(ndx(ndxx, ndxy))) {
 					if (neighbor != item && item.pos().distanceToSqr(neighbor.pos()) <= rsqr) {
+						neighbors.add(neighbor);
+					}
+				}
+			}
+		}
+		return Collections.unmodifiableList(neighbors);
+	}
+
+	/**
+	 * Returns all neighbors which are within the specified radius of the specified point.
+	 * @param pos the position of the point
+	 * @param radius the radius within which to find neighbors
+	 * @return a collection of neighbors within the specified radius
+	 */
+	public Collection<T> neighbors(Vector pos, double radius) {
+		int ndxxmin = ndxx(pos.x() - radius);
+		int ndxxmax = ndxx(pos.x() + radius);
+		int ndxymin = ndxy(pos.y() - radius);
+		int ndxymax = ndxy(pos.y() + radius);
+		double rsqr = radius * radius;
+		List<T> neighbors = new ArrayList<>();
+		for (int ndxx = ndxxmin; ndxx <= ndxxmax; ndxx++) {
+			for (int ndxy = ndxymin; ndxy <= ndxymax; ndxy++) {
+				for (T neighbor : grid.get(ndx(ndxx, ndxy))) {
+					if (pos.distanceToSqr(neighbor.pos()) <= rsqr) {
 						neighbors.add(neighbor);
 					}
 				}

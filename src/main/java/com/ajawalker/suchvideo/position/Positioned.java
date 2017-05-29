@@ -1,4 +1,4 @@
-package com.ajawalker.suchvideo.maze;
+package com.ajawalker.suchvideo.position;
 
 /**
  * An interface for things that are positioned on a 2D plane represented by a positional vector.

@@ -4,6 +4,7 @@ import com.ajawalker.delaunay.GraphEdge;
 import com.ajawalker.delaunay.Vertex;
 import com.ajawalker.delaunay.Voronoi;
 import com.ajawalker.suchvideo.VideoMaker;
+import com.ajawalker.suchvideo.position.*;
 
 import java.awt.*;
 import java.awt.geom.Line2D;
@@ -112,7 +113,7 @@ public class MazeGrower {
 		 * Creates a new field.
 		 */
 		private Field() {
-			Node node = new Node(new Vector((MAX_X - MIN_X) / 2.0, (MAX_Y - MIN_Y) / 2.0));
+			Node node = new Node(new com.ajawalker.suchvideo.position.Vector((MAX_X - MIN_X) / 2.0, (MAX_Y - MIN_Y) / 2.0));
 			grid.put(node);
 			nodes.add(node);
 		}
@@ -169,7 +170,7 @@ public class MazeGrower {
 					grew = true;
 					Node rootNode = node;
 					for (int j = 0; j < BRANCH_LENGTH; j++) {
-						Node branchNode = new Node(rootNode.pos().add(Vector.radial(branchAngle, BRANCH_RADIUS)));
+						Node branchNode = new Node(rootNode.pos().add(com.ajawalker.suchvideo.position.Vector.radial(branchAngle, BRANCH_RADIUS)));
 						rootNode.connect(branchNode);
 						branchNode.connect(rootNode);
 						rootNode.updateAdjacents();
@@ -272,17 +273,17 @@ public class MazeGrower {
 		private final Set<Node> connections = new HashSet<>();
 		private final Set<Node> adjacents = new HashSet<>();
 
-		private Vector acc = Vector.ZERO;
-		private Vector vel = Vector.ZERO;
-		private Vector pos;
+		private com.ajawalker.suchvideo.position.Vector acc = com.ajawalker.suchvideo.position.Vector.ZERO;
+		private com.ajawalker.suchvideo.position.Vector vel = com.ajawalker.suchvideo.position.Vector.ZERO;
+		private com.ajawalker.suchvideo.position.Vector pos;
 		private double pressure = 0.0;
-		private Vector pressureVector = Vector.ZERO;
+		private com.ajawalker.suchvideo.position.Vector pressureVector = com.ajawalker.suchvideo.position.Vector.ZERO;
 
 		/**
 		 * Create a new node at the provided position.
 		 * @param pos the position of this node
 		 */
-		private Node(Vector pos) {
+		private Node(com.ajawalker.suchvideo.position.Vector pos) {
 			this.pos = pos;
 		}
 
@@ -298,19 +299,19 @@ public class MazeGrower {
 
 			// push nodes away from boundaries
 			if (pos.x() < MIN_X) {
-				acc = acc.add(Vector.UNIT_X.scale(BOUNDARY_COEFF * (MIN_X - pos.x())));
+				acc = acc.add(com.ajawalker.suchvideo.position.Vector.UNIT_X.scale(BOUNDARY_COEFF * (MIN_X - pos.x())));
 				pressure += Math.abs(BOUNDARY_COEFF * (MIN_X - pos.x()));
 			}
 			if (pos.x() > MAX_X) {
-				acc = acc.add(Vector.UNIT_X.scale(BOUNDARY_COEFF * (MAX_X - pos.x())));
+				acc = acc.add(com.ajawalker.suchvideo.position.Vector.UNIT_X.scale(BOUNDARY_COEFF * (MAX_X - pos.x())));
 				pressure += Math.abs(BOUNDARY_COEFF * (MAX_X - pos.x()));
 			}
 			if (pos.y() < MIN_Y) {
-				acc = acc.add(Vector.UNIT_Y.scale(BOUNDARY_COEFF * (MIN_Y - pos.y())));
+				acc = acc.add(com.ajawalker.suchvideo.position.Vector.UNIT_Y.scale(BOUNDARY_COEFF * (MIN_Y - pos.y())));
 				pressure += Math.abs(BOUNDARY_COEFF * (MIN_Y - pos.y()));
 			}
 			if (pos.y() > MAX_Y ) {
-				acc = acc.add(Vector.UNIT_Y.scale(BOUNDARY_COEFF * (MAX_Y - pos.y())));
+				acc = acc.add(com.ajawalker.suchvideo.position.Vector.UNIT_Y.scale(BOUNDARY_COEFF * (MAX_Y - pos.y())));
 				pressure += Math.abs(BOUNDARY_COEFF * (MAX_Y - pos.y()));
 			}
 
@@ -328,7 +329,7 @@ public class MazeGrower {
 			pressureVector = acc;
 
 			// push nodes towards average (center) of its connected nodes
-			Vector avgPos = Vector.ZERO;
+			com.ajawalker.suchvideo.position.Vector avgPos = com.ajawalker.suchvideo.position.Vector.ZERO;
 			for (Node connection : connections) {
 				double dist = pos.distanceTo(connection.pos);
 				double factor = -CONNECTION_COEFF * (1.0 - dist / CONNECTION_RADIUS);
@@ -468,7 +469,7 @@ public class MazeGrower {
 		}
 
 		@Override
-		public Vector pos() {
+		public com.ajawalker.suchvideo.position.Vector pos() {
 			return pos;
 		}
 	}

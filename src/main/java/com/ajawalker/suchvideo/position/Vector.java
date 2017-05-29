@@ -1,4 +1,4 @@
-package com.ajawalker.suchvideo.maze;
+package com.ajawalker.suchvideo.position;
 
 /**
  * An immutable 2 dimensional vector.
